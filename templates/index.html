@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KForce Rules Dashboard</title>
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --bg-color: #f3f4f6; --card-bg: #ffffff; --text-main: #1f2937; --text-muted: #6b7280; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        .dashboard-container { max-width: 1000px; margin: 0 auto; }
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: var(--card-bg); padding: 20px 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .dashboard-header h1 { margin: 0; color: var(--primary); font-size: 24px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-new { background-color: var(--primary); color: white; }
+        .btn-new:hover { background-color: var(--primary-dark); }
+        
+        .rules-grid { display: flex; flex-direction: column; gap: 20px; }
+        .rule-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); display: flex; flex-direction: column; overflow: hidden; }
+        .rule-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .rule-header h3 { margin: 0; font-size: 18px; color: #0f172a; }
+        .rule-actions { display: flex; gap: 10px; }
+        .btn-edit { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .btn-start { background-color: #10b981; color: white; }
+        .btn-delete { background-color: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+
+        .rule-body { padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
+        .info-section h4 { margin-top: 0; margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; }
+        .info-item { margin-bottom: 8px; font-size: 14px; }
+        .info-label { color: var(--text-muted); display: inline-block; width: 80px; }
+        .info-val { font-weight: 500; color: #1e293b; }
+
+        /* Modal Styles */
+        #configModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; overflow-y: auto; padding: 20px 0; }
+        .modal-content { background-color: white; padding: 32px; border-radius: 12px; width: 90%; max-width: 600px; margin: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; }
+        .modal-header h2 { margin: 0; }
+        .close { background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #374151; font-size: 14px; }
+        .form-group input[type="text"], .form-group input[type="email"], .form-group input[type="tel"], .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        
+        .radio-group { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .radio-label { display: flex; align-items: center; gap: 8px; font-weight: normal !important; font-size: 14px; cursor: pointer; }
+        
+        .btn-save { background-color: var(--primary); color: white; width: 100%; margin-top: 24px; padding: 12px; border:none; border-radius: 8px; font-weight: bold; cursor: pointer;}
+        
+        #status-message { margin-bottom: 20px; padding: 12px; border-radius: 6px; text-align: center; display: none; }
+        .status-success { background-color: #d1fae5; color: #065f46; }
+        .status-error { background-color: #fee2e2; color: #991b1b; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div id="status-message"></div>
+        
+        <div class="dashboard-header">
+            <h1>KForce Auto-Applier Profiles</h1>
+            <button class="btn btn-new" onclick="openModal()">+ NEW RULE PROFILE</button>
+        </div>
+
+        <div class="rules-grid">
+            {% if not rules %}
+                <div class="empty-state">
+                    <h3>No rules created yet.</h3>
+                    <p>Click "+ NEW RULE PROFILE" to set up your first automated application rule.</p>
+                </div>
+            {% endif %}
+
+            {% for rule in rules %}
+            <div class="rule-card">
+                <div class="rule-header">
+                    <h3>Rule: {{ rule.rule_name }}</h3>
+                    <div class="rule-actions">
+                        <button class="btn btn-edit" data-rule='{{ rule | tojson | safe }}' onclick='openModal(JSON.parse(this.getAttribute("data-rule")))'>✎ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteRule('{{ rule.id }}')">🗑</button>
+                        <button class="btn btn-start" onclick="startRule('{{ rule.id }}', this)">▶ START THIS RULE</button>
+                    </div>
+                </div>
+                <div class="rule-body">
+                    <div class="info-section">
+                        <h4>Search Parameters</h4>
+                        <div class="info-item"><span class="info-label">Keyword:</span> <span class="info-val">{{ rule.keyword }}</span></div>
+                        <div class="info-item"><span class="info-label">Eligibility:</span> <span class="info-val" style="font-size: 12px;">{{ rule.eligibility }}</span></div>
+                    </div>
+                    <div class="info-section">
+                        <h4>Applicant Details</h4>
+                        <div class="info-item"><span class="info-label">Name:</span> <span class="info-val">{{ rule.first_name }} {{ rule.last_name }}</span></div>
+                        <div class="info-item"><span class="info-label">Email:</span> <span class="info-val">{{ rule.email }}</span></div>
+                        <div class="info-item"><span class="info-label">Location:</span> <span class="info-val">{{ rule.state }} {{ rule.zip }}</span></div>
+                    </div>
+                    <div class="info-section">
+                        <h4>Attached Resume</h4>
+                        {% if rule.resume_name %}
+                            <div style="color: #10b981; font-weight: 500; word-break: break-all;">📄 {{ rule.resume_name }}</div>
+                        {% else %}
+                            <div style="color: #ef4444;">No Resume Uploaded</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New Rule</h2>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="configForm">
+                <input type="hidden" name="id" id="rule_id">
+                
+                <div class="form-group">
+                    <label>Rule Name (e.g. "Senior React Dev Profile")</label>
+                    <input type="text" name="rule_name" id="rule_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Job Keyword to Search (e.g. "AI Engineer")</label>
+                    <input type="text" name="keyword" id="keyword" required>
+                </div>
+
+                <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Personal Information</h3>
+                
+                <div style="display: flex; gap: 12px;">
+                    <div class="form-group" style="flex: 1;"><label>First Name</label><input type="text" name="first_name" id="first_name" required></div>
+                    <div class="form-group" style="flex: 1;"><label>Last Name</label><input type="text" name="last_name" id="last_name" required></div>
+                </div>
+
+                <div class="form-group"><label>Email</label><input type="email" name="email" id="email" required></div>
+                <div class="form-group"><label>Phone Number</label><input type="tel" name="phone" id="phone" required></div>
+
+                <div style="display: flex; gap: 12px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>State</label>
+                        <select name="state" id="state" required>
+                            <option value="">Select State</option>
+                            <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option><option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;"><label>Zip Code</label><input type="text" name="zip" id="zip" required></div>
+                </div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Employment Eligibility</label>
+                    <div class="radio-group">
+                        <label class="radio-label"><input type="radio" name="eligibility" value="AuthorizedForAny" required> I am authorized to work in the United States for any employer.</label>
+                        <label class="radio-label"><input type="radio" name="eligibility" value="AuthorizedForPresentEmployer"> I am authorized to work in the United States solely for my present employer.</label>
+                        <label class="radio-label"><input type="radio" name="eligibility" value="RequireSponsorship"> I require sponsorship to work in the United States.</label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 24px;">
+                    <label>Upload Resume (.docx or .pdf)</label>
+                    <input type="file" name="resume" accept=".docx,.pdf" id="resume_upload">
+                    <small id="current_resume" style="color: #059669; display: none; margin-top: 4px;"></small>
+                </div>
+
+                <button type="submit" class="btn-save">Save Rule Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(msg, type) {
+            const el = document.getElementById('status-message');
+            el.textContent = msg; el.className = type === 'success' ? 'status-success' : 'status-error';
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
+
+        function openModal(data = null) {
+            document.getElementById('configForm').reset();
+            document.getElementById('current_resume').style.display = 'none';
+            document.getElementById('rule_id').value = '';
+            document.getElementById('modalTitle').textContent = data ? "Edit Rule Profile" : "Create New Rule Profile";
+
+            if (data) {
+                document.getElementById('rule_id').value = data.id;
+                document.getElementById('rule_name').value = data.rule_name;
+                document.getElementById('keyword').value = data.keyword;
+                document.getElementById('first_name').value = data.first_name;
+                document.getElementById('last_name').value = data.last_name;
+                document.getElementById('email').value = data.email;
+                document.getElementById('phone').value = data.phone;
+                document.getElementById('state').value = data.state;
+                document.getElementById('zip').value = data.zip;
+                
+                if (data.eligibility) {
+                    document.querySelector(`input[name="eligibility"][value="${data.eligibility}"]`).checked = true;
+                }
+                if (data.resume_name) {
+                    const rEl = document.getElementById('current_resume');
+                    rEl.textContent = "Current: " + data.resume_name;
+                    rEl.style.display = 'block';
+                }
+            }
+            document.getElementById('configModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('configModal').style.display = 'none'; }
+
+        document.getElementById('configForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                await fetch('/save_rule', { method: 'POST', body: formData });
+                window.location.reload();
+            } catch (error) { showStatus("Error saving rule.", 'error'); }
+        };
+
+        async function deleteRule(id) {
+            if(!confirm("Are you sure you want to delete this rule?")) return;
+            const formData = new FormData(); formData.append('id', id);
+            await fetch('/delete_rule', { method: 'POST', body: formData });
+            window.location.reload();
+        }
+
+        async function startRule(id, btn) {
+            btn.disabled = true; btn.textContent = "▶ STARTING...";
+            try {
+                const response = await fetch('/start/' + id, { method: 'POST' });
+                const result = await response.json();
+                showStatus(result.message, result.status);
+            } catch (error) { showStatus("Failed to start.", 'error'); }
+            setTimeout(() => { btn.disabled = false; btn.textContent = "▶ START THIS RULE"; }, 3000);
+        }
+    </script>
+</body>
+</html>

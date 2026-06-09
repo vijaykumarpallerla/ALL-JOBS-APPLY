@@ -1,0 +1,28 @@
+# Knowledge Transfer (KT) Log
+
+## [2026-02-02] - Project Reset
+- **Date**: 2026-02-02
+- **File name**: Cleanup
+- **Code Logic**: Deleted all previous debug scripts and screenshots to start the Job Portal Automation project from scratch as per user request.
+
+---
+
+## [2026-01-23] - Project Objective: Job Portal Automation
+- **Date**: 2026-01-23
+- **File name**: Project Plan
+- **Code Logic**: Initiated development of an automated job application tool for the Kforce portal. The tool will use a provided resume to automate the application process.
+
+## [2026-02-02] - Automation Workflow Design
+- **Date**: 2026-02-02
+- **File name**: kforce_bot.py
+- **Code Logic**: Designing the bot using `undetected-chromedriver`. 
+  - **Step 1**: Open Search URL.
+  - **Step 2**: Click on a Job listing.
+  - **Step 3**: Click 'Apply Today' button.
+  - **Step 4**: Select 'Apply Now' from the dropdown.
+  - **Step 5**: Wait for redirect to the application form.
+
+## [2026-01-23] - Project Standardization
+- **Date**: 2026-01-23
+- **File name**: KT.txt
+- **Code Logic**: Initialized the Knowledge Transfer log with a mandatory format: Date, File Name, and Code Logic for every entry to ensure consistent tracking.
