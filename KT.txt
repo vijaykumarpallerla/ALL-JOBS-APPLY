@@ -26,3 +26,13 @@
 - **Date**: 2026-01-23
 - **File name**: KT.txt
 - **Code Logic**: Initialized the Knowledge Transfer log with a mandatory format: Date, File Name, and Code Logic for every entry to ensure consistent tracking.
+
+---
+
+## [2026-06-09] - Vaco Portal Integration
+- **Date**: 2026-06-09
+- **File name**: vaco_bot.py, apply.py, all.py
+- **Code Logic**: Successfully integrated a new job portal (Vaco) alongside Kforce. 
+  - Designed an HTTP POST-based application system for Vaco, bypassing the UI and anti-bot systems via CSRF token fetching for maximum speed.
+  - Implemented a unified orchestrator (`all.py`) that first processes Kforce jobs via browser automation and immediately pipelines into Vaco HTTP automation using the same UI rule configurations.
+  - Migrated all temporary storage and tracking logs to `%LOCALAPPDATA%\Kforce` for a clean project structure.
